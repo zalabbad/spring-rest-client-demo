@@ -1,70 +1,228 @@
-# RestClient Demo with Spring Retry
+# RestClient vs WebClient: Solving the Retry Context Loss Problem
 
-## Overview
+## Problem Statement: The WebClient Retry Issue
 
-This project demonstrates how to use Spring's RestClient (introduced in Spring Framework 6.1) with Spring Retry to address a common issue with WebClient's retry mechanism. It showcases how to maintain thread-local context (MDC, security context, etc.) during retry operations, which is a limitation when using WebClient's built-in retry functionality.
+When building resilient web applications, retry mechanisms are essential for handling transient failures. However, WebClient's built-in `.retry()` functionality has a critical limitation:
 
-The project includes both implementations (RestClient and WebClient) to demonstrate the differences between them, particularly in how they handle retries and thread-local context.
+**WebClient retries occur in different threads, causing the loss of thread-local context.**
 
-## Problem Statement
+This means that during retries, you lose:
+- **MDC (Mapped Diagnostic Context)** - Your logging context disappears
+- **Security Context** - Authentication information is lost
+- **Request Context** - Headers and other request-specific data vanish
 
-When using WebClient with its built-in `.retry()` functionality, retries occur in a separate thread, which causes the loss of:
-- MDC (Mapped Diagnostic Context) information
-- Authentication context
-- Other thread-local data
+This is a significant problem for applications that rely on this context information for:
+- **Tracing requests** across multiple services
+- **Logging with correlation IDs**
+- **Maintaining authentication** during retries
+- **Propagating headers** to downstream services
 
-This is problematic for applications that rely on this context information for logging, security, and other purposes.
+## Solution: RestClient with Spring Retry
 
-## Solution
+This project demonstrates how to use Spring's RestClient (introduced in Spring Framework 6.1) with Spring Retry to solve the context loss problem. The key advantage is:
 
-This demo shows how to use Spring's RestClient with Spring Retry to implement retries that preserve the MDC context and other thread-local data. Spring Retry executes retries in the same thread, ensuring that thread-local context is maintained across retry attempts.
+**Spring Retry executes retries in the same thread, preserving all thread-local context.**
 
-The project also includes a WebClient implementation with the same interceptors to demonstrate that even with proper interceptors, WebClient's retry mechanism still loses thread-local context during retries.
+The project includes both implementations (RestClient and WebClient) with identical features to clearly demonstrate the differences in behavior, particularly regarding thread-local context preservation during retries.
 
-## Key Features
+## Side-by-Side Comparison
 
-### 1. RestClient with Spring Retry Integration
+| Feature | WebClient with `.retry()` | RestClient with Spring Retry |
+|---------|---------------------------|------------------------------|
+| **Thread Behavior** | Switches threads during retries | Maintains same thread during retries |
+| **MDC Context** | ❌ Lost during retries | ✅ Preserved during retries |
+| **Security Context** | ❌ Lost during retries | ✅ Preserved during retries |
+| **Request Headers** | Can be propagated initially, lost in retries | Consistently propagated in all attempts |
+| **Implementation** | Reactive (non-blocking) | Synchronous (blocking) |
+| **Configuration** | Programmatic | Declarative with `@Retryable` |
 
-- **RestClient Configuration**: A simple configuration for RestClient with interceptors
-- **Spring Retry Integration**: Using `@Retryable` annotation for retry functionality
-- **Thread Continuity**: Spring Retry executes retries in the same thread, preserving thread-local context
+## Project Structure
 
-### 2. Transaction ID Tracking
+The project implements the same functionality using both RestClient and WebClient to demonstrate the differences:
 
-- **Unique Identifier**: Each request gets a UUID as its transaction ID
-- **MDC Integration**: The tx_id is added to the MDC context and included in all log messages
-- **Automatic Cleanup**: The filter removes the tx_id from MDC after the request is processed
+```
+src/main/java/com/example/restclientdemo/
+├── RestClientDemoApplication.java
+├── config/
+│   ├── SecurityConfig.java           # Basic auth configuration
+│   └── TransactionIdFilter.java      # Adds tx_id to MDC
+├── restClient/                       # RestClient implementation
+│   ├── RestClientConfig.java
+│   ├── RestClientDemoController.java
+│   ├── RestClientDemoService.java    # Uses @Retryable
+│   ├── HeaderPropagationInterceptor.java
+│   └── RestClientLoggingInterceptor.java
+└── webClient/                        # WebClient implementation
+    ├── WebClientConfig.java
+    ├── WebClientDemoController.java
+    ├── WebClientDemoService.java     # Uses .retry()
+    ├── WebClientHeaderPropagationFilter.java
+    └── WebClientLoggingFilter.java
+```
 
-### 3. Request Interceptors
+## Implementation Details
 
-#### Header Propagation Interceptor
+### RestClient Implementation
 
-- **Automatic Header Propagation**: Forwards all headers from the incoming request to outgoing requests
-- **Request Context Access**: Uses Spring's RequestContextHolder to access the current request
-- **Transparent Operation**: Works without any changes to service code
+The RestClient implementation uses Spring Retry's `@Retryable` annotation to handle retries:
 
-#### Logging Interceptor
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class RestClientDemoService {
 
-- **Request Logging**: Logs the URI, method, headers, and body of each request
-- **Structured Logging**: Formats logs in a consistent, readable way
+    private final RestClient restClient;
+    private final HttpServletRequest httpServletRequest;
 
-### 4. Security Configuration
+    @Retryable(
+            retryFor = {RuntimeException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
+    public String fetchDataWithRetry(String resourcePath) {
+        log.info("RestClient - Attempting to fetch data from {}", resourcePath);
+        log.debug("RestClient - MDC context: {}", MDC.getCopyOfContextMap());
+        
+        // Make the API call
+        String response = restClient.get()
+            .uri(resourcePath)
+            .retrieve()
+            .body(String.class);
+            
+        log.info("RestClient - Successfully fetched data");
+        return response;
+    }
+}
+```
 
-- **Basic Authentication**: The `/api/demo/posts/{id}` endpoint is protected with basic authentication
-- **Security Context Preservation**: The security context is preserved during retries
-- **Header Propagation**: Authentication headers are automatically forwarded to external services
+### WebClient Implementation
 
-### 5. Testing with WireMock
+The WebClient implementation uses the built-in `.retry()` method:
 
-- **Mock External API**: Uses WireMock to simulate external API responses
-- **Scenario Testing**: Configures different response scenarios for testing retry behavior
-- **WebTestClient**: Uses WebTestClient for testing controller endpoints
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class WebClientDemoService {
 
-This approach allows tests to automatically use the WireMock server without any code changes.
+    private final WebClient webClient;
+    private final HttpServletRequest httpServletRequest;
 
-## Testing
+    public String fetchDataWithRetry(String resourcePath) {
+        log.info("WebClient - Attempting to fetch data from {}", resourcePath);
+        log.debug("WebClient - MDC context: {}", MDC.getCopyOfContextMap());
+        
+        return webClient.get()
+                .uri(resourcePath)
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnNext(response -> {
+                    log.info("WebClient - Successfully fetched data");
+                    log.debug("WebClient - MDC after success: {}", MDC.getCopyOfContextMap());
+                })
+                // This is where the issue occurs - retry happens in a different thread
+                .retry(2)
+                .block();
+    }
+}
+```
 
-The project includes tests that demonstrate the retry behavior and context preservation:
+### Key Features
+
+Both implementations include:
+
+1. **Transaction ID Tracking**
+   - Each request gets a UUID as its transaction ID
+   - The ID is added to MDC and included in all log messages
+
+2. **Header Propagation**
+   - All headers from incoming requests are forwarded to outgoing requests
+   - Uses Spring's RequestContextHolder to access the current request
+
+3. **Request Logging**
+   - Logs the URI, method, headers, and body of each request
+   - Uses a consistent format for easy troubleshooting
+
+4. **Security with Basic Authentication**
+   - Protected endpoints require authentication
+   - Authentication headers are automatically forwarded
+
+## Tests That Demonstrate the Difference
+
+The project includes tests that clearly demonstrate the context preservation difference:
+
+### RestClientDemoControllerTest
+
+This test shows that RestClient maintains context during retries:
+
+```java
+@Test
+void testControllerWithRetry() {
+    // Configure WireMock to fail on first request, then succeed
+    stubFor(get(urlEqualTo("/posts/2"))
+            .inScenario("retry scenario")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(aResponse().withStatus(500))
+            .willSetStateTo("after first failure"));
+
+    stubFor(get(urlEqualTo("/posts/2"))
+            .inScenario("retry scenario")
+            .whenScenarioStateIs("after first failure")
+            .willReturn(aResponse().withStatus(200).withBody("{...}")));
+
+    // Make request with custom header and auth
+    webTestClient.get()
+            .uri("/api/demo/posts/2")
+            .headers(headers -> {
+                headers.add("X-Custom-Header", "custom-value");
+                headers.add("Authorization", "Basic " + credentials);
+            })
+            .exchange()
+            .expectStatus().isOk();
+
+    // Verify the request was made to WireMock at least twice (initial + retry)
+    verify(moreThanOrExactly(2), getRequestedFor(urlEqualTo("/posts/2")));
+}
+```
+
+### WebClientDemoControllerTest
+
+This test demonstrates that WebClient loses context during retries:
+
+```java
+@Test
+void testWebClientControllerWithRetry() {
+    // Same WireMock configuration as above
+    
+    // Make request with custom header and auth
+    webTestClient.get()
+            .uri("/api/webclient/posts/2")
+            .headers(headers -> {
+                headers.add("X-Custom-Header", "custom-value");
+                headers.add("Authorization", "Basic " + credentials);
+            })
+            .exchange()
+            .expectStatus().isOk();
+
+    // Verify the request was made to WireMock at least twice (initial + retry)
+    verify(moreThanOrExactly(2), getRequestedFor(urlEqualTo("/posts/2")));
+}
+```
+
+### What the Tests Show
+
+When you run these tests and examine the logs:
+
+1. **RestClient Test**: You'll see that the MDC context (tx_id, userId) and security context are preserved across all retry attempts.
+
+2. **WebClient Test**: You'll notice that the MDC context and security context are present in the initial request but lost during retry attempts.
+
+This clearly demonstrates the fundamental difference between the two approaches.
+
+## Running the Tests
+
+To run the tests and see the difference in behavior:
 
 ```bash
 ./gradlew test
@@ -74,38 +232,7 @@ The tests use WireMock to simulate different response scenarios:
 1. **Success after retry**: The first request fails with a 500 error, but the retry succeeds
 2. **Failure after all retries**: All requests fail with a 500 error
 
-## WebClient Implementation
-
-The project includes a WebClient implementation with the same features as the RestClient implementation:
-
-- **WebClient Configuration**: A configuration for WebClient with filters
-- **Retry Functionality**: Using WebClient's built-in `.retry()` method
-- **Filters**: Similar to RestClient's interceptors, but using WebClient's filter mechanism
-
-### WebClient Filters
-
-#### WebClientHeaderPropagationFilter
-
-- **Automatic Header Propagation**: Forwards all headers from the incoming request to outgoing requests
-- **Request Context Access**: Uses Spring's RequestContextHolder to access the current request
-- **Transparent Operation**: Works without any changes to service code
-
-#### WebClientLoggingFilter
-
-- **Request Logging**: Logs the URI, method, and headers of each request
-- **Structured Logging**: Formats logs in a consistent, readable way
-
-### The Issue with WebClient's Retry Mechanism
-
-Despite having similar interceptors/filters, WebClient's retry mechanism still has a fundamental issue:
-
-- **Thread Switching**: WebClient's `.retry()` method executes retries in a different thread
-- **Context Loss**: This causes the loss of MDC context, security context, and other thread-local data
-- **Interceptor Limitations**: Even with proper interceptors, the context is still lost during retries
-
-This is because WebClient is built on Project Reactor, which is designed for asynchronous, non-blocking operations. While this is great for performance, it means that operations can be executed on different threads, which breaks thread-local context.
-
-## Advantages of RestClient with Spring Retry Over WebClient
+## Why RestClient with Spring Retry is Better
 
 1. **Thread Continuity**: Spring Retry executes retries in the same thread, preserving thread-local context
 2. **MDC Preservation**: Logging context is maintained across retry attempts
@@ -114,3 +241,11 @@ This is because WebClient is built on Project Reactor, which is designed for asy
 5. **Flexible Retry Policies**: Spring Retry offers various retry policies and backoff strategies
 6. **Synchronous Operation**: RestClient is synchronous by default, which is often simpler to work with
 7. **Familiar API**: RestClient's API is similar to RestTemplate, making it easier to adopt
+
+## When to Use WebClient
+
+WebClient still has its place:
+- When you need non-blocking, reactive programming
+- When you don't rely on thread-local context
+- When you implement custom context propagation mechanisms
+- When maximum throughput is more important than context preservation
