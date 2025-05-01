@@ -26,10 +26,10 @@ public class RestClientDemoService {
             backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public String fetchDataWithRetry(String resourcePath) {
-        log.info("Attempting to fetch data from {}", resourcePath);
-        log.info("MDC: {}", MDC.getCopyOfContextMap());
-        log.info("Request headers: {}", Collections.list(httpServletRequest.getHeaderNames()));
-        log.info("Security context: {}", SecurityContextHolder.getContext().getAuthentication().getName());
+        log.info("RestClient - Attempting to fetch data from {}", resourcePath);
+        log.debug("RestClient - MDC context: {}", MDC.getCopyOfContextMap());
+        log.debug("RestClient - Request headers: {}", Collections.list(httpServletRequest.getHeaderNames()));
+        log.debug("RestClient - Security context: {}", SecurityContextHolder.getContext().getAuthentication().getName());
 
         try {
             // Make the actual API call
@@ -38,13 +38,13 @@ public class RestClientDemoService {
                 .retrieve()
                 .body(String.class);
 
-            log.info("Successfully fetched data");
+            log.info("RestClient - Successfully fetched data");
             return response;
         } catch (RestClientException e) {
-            log.error("Error while fetching data: {}", e.getMessage());
+            log.error("RestClient - Error while fetching data: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Unknown error while fetching data: {}", e.getMessage());
+            log.error("RestClient - Unknown error while fetching data: {}", e.getMessage());
             // Re-throw to trigger retry
             throw e;
         }

@@ -24,7 +24,7 @@ public class WebClientDemoController {
         MDC.put("userId", userId);
         MDC.put("customHeader", customHeader);
 
-        log.info("WebClient - Received request for post with ID: {}, requestId: {}, userId: {}",
+        log.info("WebClient - Received request for post with ID: {}, tx_id: {}, userId: {}",
                 id, MDC.get("tx_id"), userId);
         return ResponseEntity
             .ok(webClientDemoService.fetchDataWithRetry("/posts/" + id));

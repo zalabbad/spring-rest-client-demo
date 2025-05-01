@@ -27,7 +27,7 @@ public class HeaderPropagationInterceptor implements ClientHttpRequestIntercepto
             HttpServletRequest currentRequest = requestAttributes.getRequest();
             propagateHeaders(currentRequest, request);
         } else {
-            log.warn("No current request found, headers will not be propagated");
+            log.warn("RestClient - No current request found, headers will not be propagated");
         }
 
         return execution.execute(request, body);
@@ -38,7 +38,7 @@ public class HeaderPropagationInterceptor implements ClientHttpRequestIntercepto
         if (headerNames != null) {
             Collections.list(headerNames).forEach(headerName -> {
                 String headerValue = currentRequest.getHeader(headerName);
-                log.debug("Propagating header: {} = {}", headerName, headerValue);
+                log.debug("RestClient - Propagating header: {} = {}", headerName, headerValue);
                 outgoingRequest.getHeaders().set(headerName, headerValue);
             });
         }

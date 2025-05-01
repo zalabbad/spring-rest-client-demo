@@ -24,7 +24,7 @@ public class RestClientDemoController {
         MDC.put("userId", userId);
         MDC.put("customHeader", customHeader);
 
-        log.info("Received request for post with ID: {}, requestId: {}, userId: {}",
+        log.info("RestClient - Received request for post with ID: {}, tx_id: {}, userId: {}",
                 id, MDC.get("tx_id"), userId);
         return ResponseEntity
             .ok(restClientDemoService.fetchDataWithRetry("/posts/" + id));

@@ -22,11 +22,11 @@ public class RestClientLoggingInterceptor implements ClientHttpRequestIntercepto
     }
 
     private void logRequest(HttpRequest request, byte[] body) {
-        log.info("=========================== Request Begin ===========================");
-        log.info("URI: {}", request.getURI());
-        log.info("Method: {}", request.getMethod());
-        log.info("Headers: {}", request.getHeaders());
-        log.info("Request body: {}", new String(body, StandardCharsets.UTF_8));
-        log.info("=========================== Request End ===========================");
+        log.info("=========================== RestClient Request Begin ===========================");
+        log.info("RestClient - URI: {}", request.getURI());
+        log.info("RestClient - Method: {}", request.getMethod());
+        log.info("RestClient - Headers: {}", request.getHeaders());
+        log.info("RestClient - Request body: {}", new String(body, StandardCharsets.UTF_8));
+        log.info("=========================== RestClient Request End ===========================");
     }
 }

@@ -19,9 +19,9 @@ public class WebClientDemoService {
 
     public String fetchDataWithRetry(String resourcePath) {
         log.info("WebClient - Attempting to fetch data from {}", resourcePath);
-        log.info("WebClient - MDC before call: {}", MDC.getCopyOfContextMap());
-        log.info("WebClient - Request headers: {}", Collections.list(httpServletRequest.getHeaderNames()));
-        log.info("WebClient - Security context: {}", SecurityContextHolder.getContext().getAuthentication().getName());
+        log.debug("WebClient - MDC context: {}", MDC.getCopyOfContextMap());
+        log.debug("WebClient - Request headers: {}", Collections.list(httpServletRequest.getHeaderNames()));
+        log.debug("WebClient - Security context: {}", SecurityContextHolder.getContext().getAuthentication().getName());
 
         return webClient.get()
                 .uri(resourcePath)
@@ -29,11 +29,11 @@ public class WebClientDemoService {
                 .bodyToMono(String.class)
                 .doOnNext(response -> {
                     log.info("WebClient - Successfully fetched data");
-                    log.info("WebClient - MDC after success: {}", MDC.getCopyOfContextMap());
+                    log.debug("WebClient - MDC after success: {}", MDC.getCopyOfContextMap());
                 })
                 .doOnError(e -> {
                     log.error("WebClient - Error while fetching data: {}", e.getMessage());
-                    log.info("WebClient - MDC after error: {}", MDC.getCopyOfContextMap());
+                    log.debug("WebClient - MDC after error: {}", MDC.getCopyOfContextMap());
                 })
                 // This is where the issue occurs - retry happens in a different thread
                 .retry(2)

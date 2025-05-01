@@ -20,9 +20,9 @@ public class WebClientLoggingFilter implements ExchangeFilterFunction {
 
     private void logRequest(ClientRequest request) {
         log.info("=========================== WebClient Request Begin ===========================");
-        log.info("URI: {}", request.url());
-        log.info("Method: {}", request.method());
-        log.info("Headers: {}", request.headers());
+        log.info("WebClient - URI: {}", request.url());
+        log.info("WebClient - Method: {}", request.method());
+        log.info("WebClient - Headers: {}", request.headers());
         log.info("=========================== WebClient Request End ===========================");
     }
 }
