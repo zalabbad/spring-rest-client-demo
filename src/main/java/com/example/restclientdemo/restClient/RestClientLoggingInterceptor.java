@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 @Component
 @Slf4j
-public class LoggingInterceptor implements ClientHttpRequestInterceptor {
+public class RestClientLoggingInterceptor implements ClientHttpRequestInterceptor {
 
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {

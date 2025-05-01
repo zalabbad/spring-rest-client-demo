@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient;
 @RequiredArgsConstructor
 public class RestClientConfig {
 
-    private final LoggingInterceptor loggingInterceptor;
+    private final RestClientLoggingInterceptor restClientLoggingInterceptor;
     private final HeaderPropagationInterceptor headerPropagationInterceptor;
 
     @Value("${api.base-url}")
@@ -23,7 +23,7 @@ public class RestClientConfig {
         return builder
                 .baseUrl(apiBaseUrl)
                 .requestInterceptor(headerPropagationInterceptor)
-                .requestInterceptor(loggingInterceptor)
+                .requestInterceptor(restClientLoggingInterceptor)
                 .build();
     }
 }
