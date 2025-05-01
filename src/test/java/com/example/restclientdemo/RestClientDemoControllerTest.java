@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import java.util.Base64;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,6 +49,7 @@ class RestClientDemoControllerTest {
     void testControllerWithRetry() {
         // Arrange
         String resourcePath = "/posts/2";
+        String credentials = Base64.getEncoder().encodeToString("zayed:password".getBytes());
 
         // Configure WireMock to fail on first request, then succeed
         stubFor(get(urlEqualTo(resourcePath))
@@ -70,7 +72,10 @@ class RestClientDemoControllerTest {
         // Act & Assert
         webTestClient.get()
                 .uri("/api/demo/posts/2")
-            .headers(headers -> headers.add("X-Custom-Header", "custom-header-value"))
+                .headers(headers -> {
+                    headers.add("X-Custom-Header", "custom-header-value");
+                    headers.add("Authorization", "Basic " + credentials);
+                })
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
@@ -90,6 +95,7 @@ class RestClientDemoControllerTest {
     void testControllerWithRetryAndFail() {
         // Arrange
         String resourcePath = "/posts/2";
+        String credentials = Base64.getEncoder().encodeToString("zayed:password".getBytes());
 
         // Configure WireMock to fail on first request, then succeed
         stubFor(get(urlEqualTo(resourcePath))
@@ -102,13 +108,19 @@ class RestClientDemoControllerTest {
         // Act & Assert
         webTestClient.get()
             .uri("/api/demo/posts/2")
-            .headers(headers -> headers.add("X-Custom-Header", "custom-header-value"))
+            .headers(headers -> {
+                headers.add("X-Custom-Header", "custom-header-value");
+                headers.add("Authorization", "Basic " + credentials);
+            })
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().is5xxServerError();
         webTestClient.get()
             .uri("/api/demo/posts/2")
-            .headers(headers -> headers.add("X-Custom-Header", "custom-header-value"))
+            .headers(headers -> {
+                headers.add("X-Custom-Header", "custom-header-value");
+                headers.add("Authorization", "Basic " + credentials);
+            })
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().is5xxServerError();

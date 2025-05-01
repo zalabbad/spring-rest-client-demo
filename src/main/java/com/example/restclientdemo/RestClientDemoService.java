@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -28,6 +29,7 @@ public class RestClientDemoService {
         log.info("Attempting to fetch data from {}", resourcePath);
         log.info("MDC: {}", MDC.getCopyOfContextMap());
         log.info("Request headers: {}", Collections.list(httpServletRequest.getHeaderNames()));
+        log.info("Security context: {}", SecurityContextHolder.getContext().getAuthentication().getName());
 
         try {
             // Make the actual API call
