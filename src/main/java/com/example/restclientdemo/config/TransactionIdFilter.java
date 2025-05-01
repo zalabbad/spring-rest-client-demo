@@ -1,4 +1,4 @@
-package com.example.restclientdemo;
+package com.example.restclientdemo.config;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;

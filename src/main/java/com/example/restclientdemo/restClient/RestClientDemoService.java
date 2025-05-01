@@ -1,4 +1,4 @@
-package com.example.restclientdemo;
+package com.example.restclientdemo.restClient;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;

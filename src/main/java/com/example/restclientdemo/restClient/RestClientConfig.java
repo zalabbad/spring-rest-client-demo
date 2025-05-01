@@ -1,4 +1,4 @@
-package com.example.restclientdemo.client;
+package com.example.restclientdemo.restClient;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

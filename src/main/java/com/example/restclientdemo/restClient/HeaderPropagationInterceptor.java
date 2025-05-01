@@ -1,4 +1,4 @@
-package com.example.restclientdemo.client;
+package com.example.restclientdemo.restClient;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

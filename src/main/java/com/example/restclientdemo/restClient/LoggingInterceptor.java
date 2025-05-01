@@ -1,4 +1,4 @@
-package com.example.restclientdemo.client;
+package com.example.restclientdemo.restClient;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpRequest;

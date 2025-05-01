@@ -1,4 +1,4 @@
-package com.example.restclientdemo;
+package com.example.restclientdemo.webClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,12 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/demo")
+@RequestMapping("/api/webclient")
 @RequiredArgsConstructor
 @Slf4j
-public class RestClientDemoController {
+public class WebClientDemoController {
 
-    private final RestClientDemoService restClientDemoService;
+    private final WebClientDemoService webClientDemoService;
 
     @GetMapping("/posts/{id}")
     public ResponseEntity<String> getPost(@PathVariable String id, @RequestHeader("X-Custom-Header") String customHeader) {
@@ -24,10 +24,9 @@ public class RestClientDemoController {
         MDC.put("userId", userId);
         MDC.put("customHeader", customHeader);
 
-        log.info("Received request for post with ID: {}, requestId: {}, userId: {}",
+        log.info("WebClient - Received request for post with ID: {}, requestId: {}, userId: {}",
                 id, MDC.get("tx_id"), userId);
         return ResponseEntity
-            .ok(restClientDemoService.fetchDataWithRetry("/posts/" + id));
+            .ok(webClientDemoService.fetchDataWithRetry("/posts/" + id));
     }
-
 }

@@ -4,6 +4,8 @@
 
 This project demonstrates how to use Spring's RestClient (introduced in Spring Framework 6.1) with Spring Retry to address a common issue with WebClient's retry mechanism. It showcases how to maintain thread-local context (MDC, security context, etc.) during retry operations, which is a limitation when using WebClient's built-in retry functionality.
 
+The project includes both implementations (RestClient and WebClient) to demonstrate the differences between them, particularly in how they handle retries and thread-local context.
+
 ## Problem Statement
 
 When using WebClient with its built-in `.retry()` functionality, retries occur in a separate thread, which causes the loss of:
@@ -16,6 +18,8 @@ This is problematic for applications that rely on this context information for l
 ## Solution
 
 This demo shows how to use Spring's RestClient with Spring Retry to implement retries that preserve the MDC context and other thread-local data. Spring Retry executes retries in the same thread, ensuring that thread-local context is maintained across retry attempts.
+
+The project also includes a WebClient implementation with the same interceptors to demonstrate that even with proper interceptors, WebClient's retry mechanism still loses thread-local context during retries.
 
 ## Key Features
 
@@ -70,10 +74,43 @@ The tests use WireMock to simulate different response scenarios:
 1. **Success after retry**: The first request fails with a 500 error, but the retry succeeds
 2. **Failure after all retries**: All requests fail with a 500 error
 
-## Advantages Over WebClient
+## WebClient Implementation
+
+The project includes a WebClient implementation with the same features as the RestClient implementation:
+
+- **WebClient Configuration**: A configuration for WebClient with filters
+- **Retry Functionality**: Using WebClient's built-in `.retry()` method
+- **Filters**: Similar to RestClient's interceptors, but using WebClient's filter mechanism
+
+### WebClient Filters
+
+#### WebClientHeaderPropagationFilter
+
+- **Automatic Header Propagation**: Forwards all headers from the incoming request to outgoing requests
+- **Request Context Access**: Uses Spring's RequestContextHolder to access the current request
+- **Transparent Operation**: Works without any changes to service code
+
+#### WebClientLoggingFilter
+
+- **Request Logging**: Logs the URI, method, and headers of each request
+- **Structured Logging**: Formats logs in a consistent, readable way
+
+### The Issue with WebClient's Retry Mechanism
+
+Despite having similar interceptors/filters, WebClient's retry mechanism still has a fundamental issue:
+
+- **Thread Switching**: WebClient's `.retry()` method executes retries in a different thread
+- **Context Loss**: This causes the loss of MDC context, security context, and other thread-local data
+- **Interceptor Limitations**: Even with proper interceptors, the context is still lost during retries
+
+This is because WebClient is built on Project Reactor, which is designed for asynchronous, non-blocking operations. While this is great for performance, it means that operations can be executed on different threads, which breaks thread-local context.
+
+## Advantages of RestClient with Spring Retry Over WebClient
 
 1. **Thread Continuity**: Spring Retry executes retries in the same thread, preserving thread-local context
 2. **MDC Preservation**: Logging context is maintained across retry attempts
 3. **Security Context Preservation**: Authentication information is preserved during retries
 4. **Simpler Configuration**: Using `@Retryable` provides a clean, declarative way to configure retries
 5. **Flexible Retry Policies**: Spring Retry offers various retry policies and backoff strategies
+6. **Synchronous Operation**: RestClient is synchronous by default, which is often simpler to work with
+7. **Familiar API**: RestClient's API is similar to RestTemplate, making it easier to adopt
