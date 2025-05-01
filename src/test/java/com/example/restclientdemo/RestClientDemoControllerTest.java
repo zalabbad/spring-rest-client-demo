@@ -106,8 +106,14 @@ class RestClientDemoControllerTest {
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().is5xxServerError();
+        webTestClient.get()
+            .uri("/api/demo/posts/2")
+            .headers(headers -> headers.add("X-Custom-Header", "custom-header-value"))
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().is5xxServerError();
 
         // Verify the request was made to WireMock at least twice (initial + retry)
-        verify(exactly(3), getRequestedFor(urlEqualTo(resourcePath)));
+        verify(exactly(6), getRequestedFor(urlEqualTo(resourcePath)));
     }
 }
