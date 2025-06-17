@@ -1,4 +1,4 @@
-package com.example.restclientdemo.restClient;
+package com.example.restclientdemo.feignClient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,25 +11,35 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@ConditionalOnProperty(name = "rest-client.enabled", havingValue = "true")
+/**
+ * Controller that demonstrates the use of FeignClient to fetch data from an external API.
+ * This shows a declarative approach to REST API clients.
+ */
+@ConditionalOnProperty(name = "feign-client.enabled", havingValue = "true")
 @RestController
-@RequestMapping("/api/demo")
+@RequestMapping("/api/feign")
 @RequiredArgsConstructor
 @Slf4j
-public class RestClientDemoController {
+public class FeignClientDemoController {
 
-    private final RestClientDemoService restClientDemoService;
+    private final FeignClientDemoService feignClientDemoService;
 
+    /**
+     * Fetches a post by its ID using FeignClient.
+     * 
+     * @param id the ID of the post to fetch
+     * @param customHeader a custom header for demonstration purposes
+     * @return the post as a String
+     */
     @GetMapping("/posts/{id}")
     public ResponseEntity<String> getPost(@PathVariable String id, @RequestHeader("X-Custom-Header") String customHeader) {
         String userId = "user-123"; // Simulated user ID
         MDC.put("userId", userId);
         MDC.put("customHeader", customHeader);
 
-        log.info("RestClient - Received request for post with ID: {}, tx_id: {}, userId: {}",
+        log.info("FeignClient - Received request for post with ID: {}, tx_id: {}, userId: {}",
                 id, MDC.get("tx_id"), userId);
         return ResponseEntity
-            .ok(restClientDemoService.fetchDataWithRetry("/posts/" + id));
+            .ok(feignClientDemoService.fetchDataWithRetry(id));
     }
-
 }

@@ -1,6 +1,7 @@
 package com.example.restclientdemo.restClient;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+@ConditionalOnProperty(name = "rest-client.enabled", havingValue = "true")
 @Component
 @Slf4j
 public class RestClientLoggingInterceptor implements ClientHttpRequestInterceptor {

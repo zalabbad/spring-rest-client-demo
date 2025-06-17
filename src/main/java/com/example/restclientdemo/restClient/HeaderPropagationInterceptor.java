@@ -3,6 +3,7 @@ package com.example.restclientdemo.restClient;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
 
+@ConditionalOnProperty(name = "rest-client.enabled", havingValue = "true")
 @Component
 @RequiredArgsConstructor
 @Slf4j
