@@ -21,8 +21,12 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
+/**
+ * Test class for the FeignClientDemoController. This demonstrates testing a
+ * controller that uses FeignClient to interact with an external API.
+ */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-class WebClientDemoControllerTest {
+class FeignClientDemoControllerTest {
 
 	private WireMockServer wireMockServer;
 	private static final int WIREMOCK_PORT = 8089;
@@ -49,9 +53,9 @@ class WebClientDemoControllerTest {
 	}
 
 	@Test
-	void testWebClientControllerWithRetry() {
+	void testControllerWithRetry() {
 		// Arrange
-		String resourcePath = "/posts/2";
+		String resourcePath = "/posts/3";
 		String credentials = Base64.getEncoder().encodeToString("zayed:password".getBytes());
 
 		// Configure WireMock to fail on first request, then succeed
@@ -68,12 +72,12 @@ class WebClientDemoControllerTest {
 				.withStatus(200)
 				.withHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
 				.withBody(
-					"{\"id\":2,\"title\":\"Retry Post\",\"body\":\"This" + " response came after a" + " retry\",\"userId\":1}")));
+					"{\"id\":3,\"title\":\"FeignClient Retry" + " Post\",\"body\":\"This response came after" + " a retry with" + " FeignClient\",\"userId\":1}")));
 
 		// Act & Assert
 		webTestClient
 			.get()
-			.uri("/api/webclient/posts/2")
+			.uri("/api/feign/posts/3")
 			.headers(headers -> {
 				headers.add("X-Custom-Header", "custom-header-value");
 				headers.add("Authorization", "Basic " + credentials);
@@ -87,6 +91,31 @@ class WebClientDemoControllerTest {
 			});
 
 		// Verify the request was made to WireMock at least twice (initial + retry)
+		verify(moreThanOrExactly(2), getRequestedFor(urlEqualTo(resourcePath)));
+	}
+
+	@Test
+	void testControllerWithRetryAndFail() {
+		// Arrange
+		String resourcePath = "/posts/3";
+		String credentials = Base64.getEncoder().encodeToString("zayed:password".getBytes());
+
+		// Configure WireMock to always fail
+		stubFor(get(urlEqualTo(resourcePath))
+			.willReturn(aResponse().withStatus(500).withBody("Server Error")));
+
+		// Act & Assert
+		webTestClient.get()
+			.uri("/api/feign/posts/3")
+			.headers(headers -> {
+				headers.add("X-Custom-Header", "custom-header-value");
+				headers.add("Authorization", "Basic " + credentials);
+			})
+			.accept(MediaType.APPLICATION_JSON)
+			.exchange()
+			.expectStatus().is5xxServerError();
+
+		// Verify the request was made to WireMock at least twice (initial + 1 retry)
 		verify(moreThanOrExactly(2), getRequestedFor(urlEqualTo(resourcePath)));
 	}
 }
