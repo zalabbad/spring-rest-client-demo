@@ -10,8 +10,7 @@ import org.springframework.retry.annotation.EnableRetry;
 @EnableRetry
 public class RestClientDemoApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(RestClientDemoApplication.class, args);
-    }
-
+	public static void main(String[] args) {
+		SpringApplication.run(RestClientDemoApplication.class, args);
+	}
 }
